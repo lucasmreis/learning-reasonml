@@ -50,7 +50,7 @@ class App extends Component {
       );
     } else if (status === "DRAWING_CARDS") {
       return (
-        <button className="App main-action" disable onClick={this.draw}>
+        <button className="App main-action" disabled onClick={this.draw}>
           Draw {remaining}
         </button>
       );
