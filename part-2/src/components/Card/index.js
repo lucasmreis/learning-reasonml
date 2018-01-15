@@ -1,5 +1,6 @@
 import React from "react";
 import "./Card.css";
+import { parseAndRender } from "./ParseAndRenderCard.bs";
 
 class Card extends React.Component {
   state = {
@@ -16,7 +17,7 @@ class Card extends React.Component {
     return (
       <div className={flippedClass} onClick={this.flip}>
         <div className="Card front">
-          <img alt={code} src={imageSource} />
+          <img alt={parseAndRender(code)} src={imageSource} />
         </div>
         <div className="Card back" />
       </div>
