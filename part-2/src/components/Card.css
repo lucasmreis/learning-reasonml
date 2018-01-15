@@ -1,0 +1,41 @@
+.Card {
+  cursor: pointer;
+  position: relative;
+  perspective: 600px;
+  width: 150px;
+  height: 210px;
+  transition: all 0.3s ease-in-out;
+  transform-style: preserve-3d;
+  margin: 0 10px 10px 0;
+  transform: rotatey(0deg);
+}
+
+.Card img {
+  width: 100%;
+}
+
+.Card .front {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: rotatey(0deg);
+  backface-visibility: hidden;
+}
+
+.Card .back {
+  background-color: crimson;
+  border-radius: 4px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: rotatey(180deg);
+  backface-visibility: hidden;
+}
+
+.Card.flipped {
+  transform: rotatey(180deg);
+}

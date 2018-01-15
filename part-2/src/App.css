@@ -1,0 +1,11 @@
+.App .card-list {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px;
+}
+
+.App .main-action {
+  margin: 10px;
+  height: 20px;
+  width: 80px;
+}

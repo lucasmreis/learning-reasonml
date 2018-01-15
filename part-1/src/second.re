@@ -26,14 +26,6 @@ module Parser = {
     | "S" => Some(Spades)
     | _ => None
     };
-  let parseSuit = suitStr =>
-    switch suitStr {
-    | "H" => Some(Hearts)
-    | "D" => Some(Diamonds)
-    | "C" => Some(Clubs)
-    | "S" => Some(Spades)
-    | _ => None
-    };
   let parseNumValue = numStr => {
     let parsed =
       try (numStr |> int_of_string |> some) {
@@ -120,7 +112,7 @@ module Option = {
 };
 
 /* example */
-"J"
+"QC"
 |> Parser.parseCard
 |> Option.map(RenderToString.renderCard)
 |> Option.withDefault(RenderToString.defaultErrorCard)
