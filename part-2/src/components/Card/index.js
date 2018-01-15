@@ -1,9 +1,11 @@
 import React from "react";
 import "./Card.css";
-import CardView from "./CardView.bs";
+import { parseAndRender } from "./ParseAndRenderCard.bs";
 
 class Card extends React.Component {
-  state = { flipped: true };
+  state = {
+    flipped: true
+  };
 
   flip = () => {
     this.setState({ flipped: !this.state.flipped });
@@ -11,13 +13,14 @@ class Card extends React.Component {
 
   render() {
     const { code, imageSource } = this.props;
+    const flippedClass = this.state.flipped ? "Card flipped" : "Card";
     return (
-      <CardView
-        code={code}
-        imageSource={imageSource}
-        flipped={this.state.flipped}
-        onClick={this.flip}
-      />
+      <div className={flippedClass} onClick={this.flip}>
+        <div className="Card front">
+          <img alt={parseAndRender(code)} src={imageSource} />
+        </div>
+        <div className="Card back" />
+      </div>
     );
   }
 }
