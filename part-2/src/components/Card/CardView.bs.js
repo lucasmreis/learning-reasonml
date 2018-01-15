@@ -10,8 +10,9 @@ var component = ReasonReact.statelessComponent("CardView");
 function make(code, imageSource, flipped, onClick, _) {
   var newrecord = component.slice();
   newrecord[/* render */9] = (function () {
+      var className = flipped !== 0 ? "Card" : "Card flipped";
       return React.createElement("div", {
-                  className: flipped !== 0 ? "Card flipped" : "Card",
+                  className: className,
                   onClick: onClick
                 }, React.createElement("div", {
                       className: "Card front"
@@ -25,15 +26,9 @@ function make(code, imageSource, flipped, onClick, _) {
   return newrecord;
 }
 
-var $$default = ReasonReact.wrapReasonForJs(component, (function (jsProps) {
-        return make(jsProps.code, jsProps.imageSource, +jsProps.flipped, jsProps.onClick, /* array */[]);
-      }));
-
 export {
   component ,
   make      ,
-  $$default ,
-  $$default   as default,
   
 }
 /* component Not a pure module */
