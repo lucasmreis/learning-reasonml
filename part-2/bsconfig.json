@@ -4,7 +4,7 @@
   "sources": [
     {
       "dir": "src",
-      "subdirs": true // recursively builds every subdirectory
+      "subdirs": true
     }
   ],
   "package-specs": {
@@ -12,8 +12,14 @@
     "in-source": true
   },
   "suffix": ".bs.js",
-  "reason": { "react-jsx": 2 },
-  "bs-dependencies": ["reason-react"],
+  "reason": {
+    "react-jsx": 2
+  },
+  "bs-dependencies": [
+    "reason-react",
+    "bs-fetch",
+    "@glennsl/bs-json"
+  ],
   "namespace": true,
   "refmt": 3
 }
