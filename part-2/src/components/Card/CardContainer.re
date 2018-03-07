@@ -17,8 +17,3 @@ let make = (~code, ~imageSource, _self) => {
       onClick=(_event => self.send(Flip))
     />
 };
-
-let default =
-  ReasonReact.wrapReasonForJs(~component, jsProps =>
-    make(~code=jsProps##code, ~imageSource=jsProps##imageSource, [||])
-  );

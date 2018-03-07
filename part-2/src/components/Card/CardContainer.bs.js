@@ -24,15 +24,9 @@ function make(code, imageSource, _) {
   return newrecord;
 }
 
-var $$default = ReasonReact.wrapReasonForJs(component, (function (jsProps) {
-        return make(jsProps.code, jsProps.imageSource, /* array */[]);
-      }));
-
 export {
   component ,
   make      ,
-  $$default ,
-  $$default   as default,
   
 }
 /* component Not a pure module */

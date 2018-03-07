@@ -15,7 +15,10 @@ type action =
   | CreateDeck
   | DeckCreated(deck)
   | CreateDeckFailed
-  | Draw;
+  | DrawCards(deck)
+  | CardsDrawn(deck)
+  | DrawCardsFailed
+  | Finish(list(card));
 
 type state =
   | CreatingDeck
@@ -36,7 +39,83 @@ let decodeCreatedDeck = json =>
     cards: []
   };
 
+let decodeCard = json =>
+  Json.Decode.{
+    code: json |> field("code", string),
+    image: json |> field("image", string)
+  };
+
+let decodeDeck = json =>
+  Json.Decode.{
+    deckId: json |> field("deck_id", string),
+    remaining: json |> field("remaining", int),
+    cards: json |> field("cards", list(decodeCard))
+  };
+
 let component = ReasonReact.reducerComponent("App");
+
+let createDeckSideEffects = send =>
+  Js.Promise.(
+    Fetch.fetch("https://deckofcardsapi.com/api/deck/new/shuffle/")
+    |> then_(Fetch.Response.json)
+    |> then_(json =>
+         json
+         |> decodeCreatedDeck
+         |> (deck => send(DeckCreated(deck)))
+         |> resolve
+       )
+    |> catch(_error => send(CreateDeckFailed) |> resolve)
+  )
+  |> ignore;
+
+let drawCardsSideEffects = (stateDeck, send) =>
+  Js.Promise.(
+    Fetch.fetch(
+      "https://deckofcardsapi.com/api/deck/"
+      ++ stateDeck.deckId
+      ++ "/draw/?count="
+      ++ drawQuantity(stateDeck)
+    )
+    |> then_(Fetch.Response.json)
+    |> then_(json =>
+         json
+         |> decodeDeck
+         |> (
+           receivedDeck =>
+             if (receivedDeck.remaining > 0) {
+               send(
+                 CardsDrawn({
+                   ...receivedDeck,
+                   cards: stateDeck.cards @ receivedDeck.cards
+                 })
+               );
+             } else {
+               send(Finish(stateDeck.cards));
+             }
+         )
+         |> resolve
+       )
+  )
+  |> ignore;
+
+let renderButtonAndCards = (deck, send, ~disabledButton) => {
+  let cards =
+    List.map(
+      c => <CardContainer code=c.code imageSource=c.image />,
+      deck.cards
+    )
+    |> Array.of_list
+    |> ReasonReact.arrayToElement;
+  <div className="App">
+    <button
+      className="App main-action"
+      disabled=(Js.Boolean.to_js_boolean(disabledButton))
+      onClick=(_self => send(DrawCards(deck)))>
+      (ReasonReact.stringToElement("Draw " ++ drawQuantity(deck)))
+    </button>
+    <div className="App card-list"> cards </div>
+  </div>;
+};
 
 let make = _self => {
   ...component,
@@ -46,25 +125,18 @@ let make = _self => {
     | CreateDeck =>
       ReasonReact.UpdateWithSideEffects(
         CreatingDeck,
-        (
-          self =>
-            Js.Promise.(
-              Fetch.fetch("https://deckofcardsapi.com/api/deck/new/shuffle/")
-              |> then_(Fetch.Response.json)
-              |> then_(json =>
-                   json
-                   |> decodeCreatedDeck
-                   |> (deck => self.send(DeckCreated(deck)))
-                   |> resolve
-                 )
-              |> catch(_error => self.send(CreateDeckFailed) |> resolve)
-            )
-            |> ignore
-        )
+        (self => createDeckSideEffects(self.send))
       )
     | DeckCreated(deck) => ReasonReact.Update(WaitingForUser(deck))
     | CreateDeckFailed => ReasonReact.Update(Error)
-    | Draw => ReasonReact.Update(Error)
+    | DrawCards(stateDeck) =>
+      ReasonReact.UpdateWithSideEffects(
+        DrawingCards(stateDeck),
+        (self => drawCardsSideEffects(stateDeck, self.send))
+      )
+    | CardsDrawn(deck) => ReasonReact.Update(WaitingForUser(deck))
+    | DrawCardsFailed => ReasonReact.Update(Error)
+    | Finish(cards) => ReasonReact.Update(Finished(cards))
     },
   didMount: self => {
     self.send(CreateDeck);
@@ -76,15 +148,19 @@ let make = _self => {
         switch self.state {
         | CreatingDeck => <p> (ReasonReact.stringToElement("Loading...")) </p>
         | WaitingForUser(deck) =>
-          <button
-            className="App main-action" onClick=(_self => self.send(Draw))>
-            (ReasonReact.stringToElement("Draw " ++ drawQuantity(deck)))
-          </button>
-        | DrawingCards(_deck) =>
-          <p> (ReasonReact.stringToElement("DrawingCards")) </p>
+          renderButtonAndCards(deck, self.send, ~disabledButton=false)
+        | DrawingCards(deck) =>
+          renderButtonAndCards(deck, self.send, ~disabledButton=true)
         | Finished(_cards) =>
           <p> (ReasonReact.stringToElement("Finished")) </p>
-        | Error => <p> (ReasonReact.stringToElement("Error")) </p>
+        | Error =>
+          <p>
+            (
+              ReasonReact.stringToElement(
+                "There was an error. Please refresh and try again!"
+              )
+            )
+          </p>
         }
       )
     </div>
