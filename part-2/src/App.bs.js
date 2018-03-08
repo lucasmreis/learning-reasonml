@@ -46,36 +46,42 @@ function decodeDeck(json) {
 
 var component = ReasonReact.reducerComponent("App");
 
-function createDeckSideEffects(send) {
+function createDeckSideEffects(self) {
   fetch("https://deckofcardsapi.com/api/deck/new/shuffle/").then((function (prim) {
               return prim.json();
             })).then((function (json) {
             var deck = decodeCreatedDeck(json);
-            return Promise.resolve(Curry._1(send, /* DeckCreated */Block.__(0, [deck])));
+            return Promise.resolve(Curry._1(self[/* send */4], /* DeckCreated */Block.__(0, [deck])));
           })).catch((function () {
-          return Promise.resolve(Curry._1(send, /* CreateDeckFailed */1));
+          return Promise.resolve(Curry._1(self[/* send */4], /* CreateDeckFailed */1));
         }));
   return /* () */0;
 }
 
-function drawCardsSideEffects(stateDeck, send) {
+function drawCardsSideEffects(stateDeck, self) {
   fetch("https://deckofcardsapi.com/api/deck/" + (stateDeck[/* deckId */0] + ("/draw/?count=" + drawQuantity(stateDeck)))).then((function (prim) {
             return prim.json();
           })).then((function (json) {
           var receivedDeck = decodeDeck(json);
-          return Promise.resolve(receivedDeck[/* remaining */1] > 0 ? Curry._1(send, /* CardsDrawn */Block.__(2, [/* record */[
+          return Promise.resolve(receivedDeck[/* remaining */1] > 0 ? Curry._1(self[/* send */4], /* CardsDrawn */Block.__(2, [/* record */[
                                 /* deckId */receivedDeck[/* deckId */0],
                                 /* remaining */receivedDeck[/* remaining */1],
                                 /* cards */Pervasives.$at(stateDeck[/* cards */2], receivedDeck[/* cards */2])
-                              ]])) : Curry._1(send, /* Finish */Block.__(3, [stateDeck[/* cards */2]])));
+                              ]])) : Curry._1(self[/* send */4], /* Finish */Block.__(3, [stateDeck[/* cards */2]])));
         }));
   return /* () */0;
 }
 
-function renderButtonAndCards(deck, send, disabledButton) {
-  var cards = $$Array.of_list(List.map((function (c) {
+function renderCards(cards) {
+  var cardElements = $$Array.of_list(List.map((function (c) {
               return ReasonReact.element(/* None */0, /* None */0, CardContainer$SimpleDeck.make(c[/* code */1], c[/* image */0], /* array */[]));
-            }), deck[/* cards */2]));
+            }), cards));
+  return React.createElement("div", {
+              className: "App card-list"
+            }, cardElements);
+}
+
+function renderButtonAndCards(deck, send, disabledButton) {
   return React.createElement("div", {
               className: "App"
             }, React.createElement("button", {
@@ -84,9 +90,7 @@ function renderButtonAndCards(deck, send, disabledButton) {
                   onClick: (function () {
                       return Curry._1(send, /* DrawCards */Block.__(1, [deck]));
                     })
-                }, "Draw " + drawQuantity(deck)), React.createElement("div", {
-                  className: "App card-list"
-                }, cards));
+                }, "Draw " + drawQuantity(deck)), renderCards(deck[/* cards */2]));
 }
 
 function make() {
@@ -109,7 +113,7 @@ function make() {
               tmp = renderButtonAndCards(match[0], self[/* send */4], /* true */1);
               break;
           case 2 : 
-              tmp = React.createElement("p", undefined, "Finished");
+              tmp = renderCards(match[0]);
               break;
           
         }
@@ -127,9 +131,7 @@ function make() {
           case 0 : 
               return /* UpdateWithSideEffects */Block.__(3, [
                         /* CreatingDeck */0,
-                        (function (self) {
-                            return createDeckSideEffects(self[/* send */4]);
-                          })
+                        createDeckSideEffects
                       ]);
           case 1 : 
           case 2 : 
@@ -142,8 +144,8 @@ function make() {
               var stateDeck = action[0];
               return /* UpdateWithSideEffects */Block.__(3, [
                         /* DrawingCards */Block.__(1, [stateDeck]),
-                        (function (self) {
-                            return drawCardsSideEffects(stateDeck, self[/* send */4]);
+                        (function (param) {
+                            return drawCardsSideEffects(stateDeck, param);
                           })
                       ]);
           case 0 : 
@@ -173,6 +175,7 @@ export {
   component                ,
   createDeckSideEffects    ,
   drawCardsSideEffects     ,
+  renderCards              ,
   renderButtonAndCards     ,
   make                     ,
   $$default                ,

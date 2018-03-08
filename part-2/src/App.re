@@ -54,58 +54,63 @@ let decodeDeck = json =>
 
 let component = ReasonReact.reducerComponent("App");
 
-let createDeckSideEffects = send =>
-  Js.Promise.(
-    Fetch.fetch("https://deckofcardsapi.com/api/deck/new/shuffle/")
-    |> then_(Fetch.Response.json)
-    |> then_(json =>
-         json
-         |> decodeCreatedDeck
-         |> (deck => send(DeckCreated(deck)))
-         |> resolve
-       )
-    |> catch(_error => send(CreateDeckFailed) |> resolve)
-  )
-  |> ignore;
-
-let drawCardsSideEffects = (stateDeck, send) =>
-  Js.Promise.(
-    Fetch.fetch(
-      "https://deckofcardsapi.com/api/deck/"
-      ++ stateDeck.deckId
-      ++ "/draw/?count="
-      ++ drawQuantity(stateDeck)
-    )
-    |> then_(Fetch.Response.json)
-    |> then_(json =>
-         json
-         |> decodeDeck
-         |> (
-           receivedDeck =>
-             if (receivedDeck.remaining > 0) {
-               send(
-                 CardsDrawn({
-                   ...receivedDeck,
-                   cards: stateDeck.cards @ receivedDeck.cards
-                 })
-               );
-             } else {
-               send(Finish(stateDeck.cards));
-             }
+let createDeckSideEffects = self =>
+  ReasonReact.(
+    Js.Promise.(
+      Fetch.fetch("https://deckofcardsapi.com/api/deck/new/shuffle/")
+      |> then_(Fetch.Response.json)
+      |> then_(json =>
+           json
+           |> decodeCreatedDeck
+           |> (deck => self.send(DeckCreated(deck)))
+           |> resolve
          )
-         |> resolve
-       )
-  )
-  |> ignore;
-
-let renderButtonAndCards = (deck, send, ~disabledButton) => {
-  let cards =
-    List.map(
-      c => <CardContainer code=c.code imageSource=c.image />,
-      deck.cards
+      |> catch(_error => self.send(CreateDeckFailed) |> resolve)
+      |> ignore
     )
+  );
+
+let drawCardsSideEffects = (stateDeck, self) =>
+  ReasonReact.(
+    Js.Promise.(
+      Fetch.fetch(
+        "https://deckofcardsapi.com/api/deck/"
+        ++ stateDeck.deckId
+        ++ "/draw/?count="
+        ++ drawQuantity(stateDeck)
+      )
+      |> then_(Fetch.Response.json)
+      |> then_(json =>
+           json
+           |> decodeDeck
+           |> (
+             receivedDeck =>
+               if (receivedDeck.remaining > 0) {
+                 self.send(
+                   CardsDrawn({
+                     ...receivedDeck,
+                     cards: stateDeck.cards @ receivedDeck.cards
+                   })
+                 );
+               } else {
+                 self.send(Finish(stateDeck.cards));
+               }
+           )
+           |> resolve
+         )
+      |> ignore
+    )
+  );
+
+let renderCards = cards => {
+  let cardElements =
+    List.map(c => <CardContainer code=c.code imageSource=c.image />, cards)
     |> Array.of_list
     |> ReasonReact.arrayToElement;
+  <div className="App card-list"> cardElements </div>;
+};
+
+let renderButtonAndCards = (deck, send, ~disabledButton) =>
   <div className="App">
     <button
       className="App main-action"
@@ -113,9 +118,8 @@ let renderButtonAndCards = (deck, send, ~disabledButton) => {
       onClick=(_self => send(DrawCards(deck)))>
       (ReasonReact.stringToElement("Draw " ++ drawQuantity(deck)))
     </button>
-    <div className="App card-list"> cards </div>
+    (renderCards(deck.cards))
   </div>;
-};
 
 let make = _self => {
   ...component,
@@ -123,16 +127,13 @@ let make = _self => {
   reducer: (action, _state) =>
     switch action {
     | CreateDeck =>
-      ReasonReact.UpdateWithSideEffects(
-        CreatingDeck,
-        (self => createDeckSideEffects(self.send))
-      )
+      ReasonReact.UpdateWithSideEffects(CreatingDeck, createDeckSideEffects)
     | DeckCreated(deck) => ReasonReact.Update(WaitingForUser(deck))
     | CreateDeckFailed => ReasonReact.Update(Error)
     | DrawCards(stateDeck) =>
       ReasonReact.UpdateWithSideEffects(
         DrawingCards(stateDeck),
-        (self => drawCardsSideEffects(stateDeck, self.send))
+        drawCardsSideEffects(stateDeck)
       )
     | CardsDrawn(deck) => ReasonReact.Update(WaitingForUser(deck))
     | DrawCardsFailed => ReasonReact.Update(Error)
@@ -151,8 +152,7 @@ let make = _self => {
           renderButtonAndCards(deck, self.send, ~disabledButton=false)
         | DrawingCards(deck) =>
           renderButtonAndCards(deck, self.send, ~disabledButton=true)
-        | Finished(_cards) =>
-          <p> (ReasonReact.stringToElement("Finished")) </p>
+        | Finished(cards) => renderCards(cards)
         | Error =>
           <p>
             (
