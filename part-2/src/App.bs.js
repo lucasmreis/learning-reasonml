@@ -67,7 +67,7 @@ function drawCardsSideEffects(stateDeck, self) {
                                 /* deckId */receivedDeck[/* deckId */0],
                                 /* remaining */receivedDeck[/* remaining */1],
                                 /* cards */Pervasives.$at(stateDeck[/* cards */2], receivedDeck[/* cards */2])
-                              ]])) : Curry._1(self[/* send */4], /* Finish */Block.__(3, [stateDeck[/* cards */2]])));
+                              ]])) : Curry._1(self[/* send */4], /* DeckFinished */Block.__(3, [stateDeck[/* cards */2]])));
         }));
   return /* () */0;
 }
@@ -152,7 +152,7 @@ function make() {
           case 2 : 
               return /* Update */Block.__(0, [/* WaitingForUser */Block.__(0, [action[0]])]);
           case 3 : 
-              return /* Update */Block.__(0, [/* Finished */Block.__(2, [action[0]])]);
+              return /* Update */Block.__(0, [/* NoMoreCardsToDraw */Block.__(2, [action[0]])]);
           
         }
       }

@@ -18,13 +18,13 @@ type action =
   | DrawCards(deck)
   | CardsDrawn(deck)
   | DrawCardsFailed
-  | Finish(list(card));
+  | DeckFinished(list(card));
 
 type state =
   | CreatingDeck
   | WaitingForUser(deck)
   | DrawingCards(deck)
-  | Finished(list(card))
+  | NoMoreCardsToDraw(list(card))
   | Error;
 
 let number_of_cards_per_draw = 3;
@@ -93,7 +93,7 @@ let drawCardsSideEffects = (stateDeck, self) =>
                    })
                  );
                } else {
-                 self.send(Finish(stateDeck.cards));
+                 self.send(DeckFinished(stateDeck.cards));
                }
            )
            |> resolve
@@ -137,7 +137,7 @@ let make = _self => {
       )
     | CardsDrawn(deck) => ReasonReact.Update(WaitingForUser(deck))
     | DrawCardsFailed => ReasonReact.Update(Error)
-    | Finish(cards) => ReasonReact.Update(Finished(cards))
+    | DeckFinished(cards) => ReasonReact.Update(NoMoreCardsToDraw(cards))
     },
   didMount: self => {
     self.send(CreateDeck);
@@ -152,7 +152,7 @@ let make = _self => {
           renderButtonAndCards(deck, self.send, ~disabledButton=false)
         | DrawingCards(deck) =>
           renderButtonAndCards(deck, self.send, ~disabledButton=true)
-        | Finished(cards) => renderCards(cards)
+        | NoMoreCardsToDraw(cards) => renderCards(cards)
         | Error =>
           <p>
             (
