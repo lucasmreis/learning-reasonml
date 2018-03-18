@@ -15,16 +15,25 @@ import * as CardContainer$SimpleDeck from "./components/Card/CardContainer.bs.js
 import './App.css'
 ;
 
-function drawQuantity(deck) {
-  return Pervasives.min(deck[/* remaining */1], 3).toString();
-}
-
 function decodeCreatedDeck(json) {
   return /* record */[
           /* deckId */Json_decode.field("deck_id", Json_decode.string, json),
           /* remaining */Json_decode.field("remaining", Json_decode.$$int, json),
           /* cards : [] */0
         ];
+}
+
+function createDeckSideEffects(self) {
+  fetch("https://deckofcardsapi.com/api/deck/new/shuffle/").then((function (prim) {
+                return prim.json();
+              })).then((function (json) {
+              return Promise.resolve(decodeCreatedDeck(json));
+            })).then((function (deck) {
+            return Promise.resolve(Curry._1(self[/* send */4], /* DeckCreated */Block.__(0, [deck])));
+          })).catch((function () {
+          return Promise.resolve(Curry._1(self[/* send */4], /* CreateDeckFailed */1));
+        }));
+  return /* () */0;
 }
 
 function decodeCard(json) {
@@ -44,32 +53,76 @@ function decodeDeck(json) {
         ];
 }
 
-var component = ReasonReact.reducerComponent("App");
+function drawnOrFinished(current, received) {
+  if (received[/* remaining */1] > 0) {
+    return /* CardsDrawn */Block.__(2, [/* record */[
+                /* deckId */received[/* deckId */0],
+                /* remaining */received[/* remaining */1],
+                /* cards */Pervasives.$at(current[/* cards */2], received[/* cards */2])
+              ]]);
+  } else {
+    return /* DeckFinished */Block.__(3, [current[/* cards */2]]);
+  }
+}
 
-function createDeckSideEffects(self) {
-  fetch("https://deckofcardsapi.com/api/deck/new/shuffle/").then((function (prim) {
+function drawQuantity(deck) {
+  return Pervasives.min(deck[/* remaining */1], 3).toString();
+}
+
+function drawCardsSideEffects(currentDeck, self) {
+  fetch("https://deckofcardsapi.com/api/deck/" + (currentDeck[/* deckId */0] + ("/draw/?count=" + drawQuantity(currentDeck)))).then((function (prim) {
               return prim.json();
             })).then((function (json) {
-            var deck = decodeCreatedDeck(json);
-            return Promise.resolve(Curry._1(self[/* send */4], /* DeckCreated */Block.__(0, [deck])));
-          })).catch((function () {
-          return Promise.resolve(Curry._1(self[/* send */4], /* CreateDeckFailed */1));
+            return Promise.resolve(decodeDeck(json));
+          })).then((function (receivedDeck) {
+          return Promise.resolve(Curry._1(self[/* send */4], drawnOrFinished(currentDeck, receivedDeck)));
         }));
   return /* () */0;
 }
 
-function drawCardsSideEffects(stateDeck, self) {
-  fetch("https://deckofcardsapi.com/api/deck/" + (stateDeck[/* deckId */0] + ("/draw/?count=" + drawQuantity(stateDeck)))).then((function (prim) {
-            return prim.json();
-          })).then((function (json) {
-          var receivedDeck = decodeDeck(json);
-          return Promise.resolve(receivedDeck[/* remaining */1] > 0 ? Curry._1(self[/* send */4], /* CardsDrawn */Block.__(2, [/* record */[
-                                /* deckId */receivedDeck[/* deckId */0],
-                                /* remaining */receivedDeck[/* remaining */1],
-                                /* cards */Pervasives.$at(stateDeck[/* cards */2], receivedDeck[/* cards */2])
-                              ]])) : Curry._1(self[/* send */4], /* DeckFinished */Block.__(3, [stateDeck[/* cards */2]])));
-        }));
-  return /* () */0;
+function reducer(action, _) {
+  if (typeof action === "number") {
+    switch (action) {
+      case 0 : 
+          return /* UpdateWithSideEffects */Block.__(3, [
+                    /* CreatingDeck */0,
+                    createDeckSideEffects
+                  ]);
+      case 1 : 
+      case 2 : 
+          return /* Update */Block.__(0, [/* Error */1]);
+      
+    }
+  } else {
+    switch (action.tag | 0) {
+      case 1 : 
+          var currentDeck = action[0];
+          return /* UpdateWithSideEffects */Block.__(3, [
+                    /* DrawingCards */Block.__(1, [currentDeck]),
+                    (function (param) {
+                        return drawCardsSideEffects(currentDeck, param);
+                      })
+                  ]);
+      case 0 : 
+      case 2 : 
+          return /* Update */Block.__(0, [/* WaitingForUser */Block.__(0, [action[0]])]);
+      case 3 : 
+          return /* Update */Block.__(0, [/* NoMoreCardsToDraw */Block.__(2, [action[0]])]);
+      
+    }
+  }
+}
+
+function renderParagraph(text) {
+  return React.createElement("p", undefined, text);
+}
+
+function renderLoading() {
+  return renderParagraph("Loading...");
+}
+
+function renderError() {
+  return renderParagraph("There was an error. Please refresh and try again!");
 }
 
 function renderCards(cards) {
@@ -93,70 +146,43 @@ function renderButtonAndCards(deck, send, disabledButton) {
                 }, "Draw " + drawQuantity(deck)), renderCards(deck[/* cards */2]));
 }
 
+function render(self) {
+  var match = self[/* state */2];
+  var tmp;
+  if (typeof match === "number") {
+    tmp = match ? renderParagraph("There was an error. Please refresh and try again!") : renderParagraph("Loading...");
+  } else {
+    switch (match.tag | 0) {
+      case 0 : 
+          tmp = renderButtonAndCards(match[0], self[/* send */4], /* false */0);
+          break;
+      case 1 : 
+          tmp = renderButtonAndCards(match[0], self[/* send */4], /* true */1);
+          break;
+      case 2 : 
+          tmp = renderCards(match[0]);
+          break;
+      
+    }
+  }
+  return React.createElement("div", {
+              className: "App"
+            }, tmp);
+}
+
+var component = ReasonReact.reducerComponent("App");
+
 function make() {
   var newrecord = component.slice();
   newrecord[/* didMount */4] = (function (self) {
       Curry._1(self[/* send */4], /* CreateDeck */0);
       return /* NoUpdate */0;
     });
-  newrecord[/* render */9] = (function (self) {
-      var match = self[/* state */2];
-      var tmp;
-      if (typeof match === "number") {
-        tmp = match ? React.createElement("p", undefined, "There was an error. Please refresh and try again!") : React.createElement("p", undefined, "Loading...");
-      } else {
-        switch (match.tag | 0) {
-          case 0 : 
-              tmp = renderButtonAndCards(match[0], self[/* send */4], /* false */0);
-              break;
-          case 1 : 
-              tmp = renderButtonAndCards(match[0], self[/* send */4], /* true */1);
-              break;
-          case 2 : 
-              tmp = renderCards(match[0]);
-              break;
-          
-        }
-      }
-      return React.createElement("div", {
-                  className: "App"
-                }, tmp);
-    });
+  newrecord[/* render */9] = render;
   newrecord[/* initialState */10] = (function () {
       return /* CreatingDeck */0;
     });
-  newrecord[/* reducer */12] = (function (action, _) {
-      if (typeof action === "number") {
-        switch (action) {
-          case 0 : 
-              return /* UpdateWithSideEffects */Block.__(3, [
-                        /* CreatingDeck */0,
-                        createDeckSideEffects
-                      ]);
-          case 1 : 
-          case 2 : 
-              return /* Update */Block.__(0, [/* Error */1]);
-          
-        }
-      } else {
-        switch (action.tag | 0) {
-          case 1 : 
-              var stateDeck = action[0];
-              return /* UpdateWithSideEffects */Block.__(3, [
-                        /* DrawingCards */Block.__(1, [stateDeck]),
-                        (function (param) {
-                            return drawCardsSideEffects(stateDeck, param);
-                          })
-                      ]);
-          case 0 : 
-          case 2 : 
-              return /* Update */Block.__(0, [/* WaitingForUser */Block.__(0, [action[0]])]);
-          case 3 : 
-              return /* Update */Block.__(0, [/* NoMoreCardsToDraw */Block.__(2, [action[0]])]);
-          
-        }
-      }
-    });
+  newrecord[/* reducer */12] = reducer;
   return newrecord;
 }
 
@@ -167,16 +193,22 @@ var $$default = ReasonReact.wrapReasonForJs(component, (function () {
 var number_of_cards_per_draw = 3;
 
 export {
-  number_of_cards_per_draw ,
-  drawQuantity             ,
   decodeCreatedDeck        ,
+  createDeckSideEffects    ,
   decodeCard               ,
   decodeDeck               ,
-  component                ,
-  createDeckSideEffects    ,
+  drawnOrFinished          ,
+  number_of_cards_per_draw ,
+  drawQuantity             ,
   drawCardsSideEffects     ,
+  reducer                  ,
+  renderParagraph          ,
+  renderLoading            ,
+  renderError              ,
   renderCards              ,
   renderButtonAndCards     ,
+  render                   ,
+  component                ,
   make                     ,
   $$default                ,
   $$default                  as default,
